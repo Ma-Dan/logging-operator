@@ -46,5 +46,7 @@ func init() {
 	RegisterPlugin(GCSOutput, GCSTemplate, GCSDefaultValues)
 	RegisterPlugin(AzureOutput, AzureTemplate, AzureDefaultValues)
 	RegisterPlugin(AlibabaOutput, AlibabaTemplate, AlibabaDefaultValues)
-	RegisterPlugin(ParserFilter, ParserFilterTemplate, ParserFilterDefaultValues)
+	RegisterPlugin(ElasticSearchOutput, ElasticSearchTemplate, ElasticSearchDefaultValues)
+	//RegisterPlugin(ParserFilter, ParserFilterTemplate, ParserFilterDefaultValues)
+	RegisterPlugin(RecordTransformerFilter, RecordTransformerFilterTemplate, RecordTransformerFilterDefaultValues)
 }

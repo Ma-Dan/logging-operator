@@ -246,7 +246,7 @@ func generateVolumeMounts() (v []corev1.VolumeMount) {
 		{
 			Name:      "varlibcontainers",
 			ReadOnly:  true,
-			MountPath: "/var/lib/docker/containers",
+			MountPath: "/data/var/lib/docker/containers",
 		},
 		{
 			Name:      "config",
@@ -292,7 +292,7 @@ func generateVolume() (v []corev1.Volume) {
 			Name: "varlibcontainers",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/lib/docker/containers",
+					Path: "/data/var/lib/docker/containers",
 				},
 			},
 		},
