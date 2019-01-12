@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/banzaicloud/logging-operator/cmd/logging-operator/fluentbit"
-	"github.com/banzaicloud/logging-operator/cmd/logging-operator/fluentd"
+	"kubesphere.io/logging-operator/cmd/logging-operator/fluentbit"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -78,11 +77,5 @@ func configureOperator() {
 	} else if !viper.GetBool("fluent-bit.enabled") {
 		logrus.Info("Deleting fluent-bit DaemonSet...")
 		fluentbit.DeleteFluentBit(GlobalLabels)
-	}
-	if viper.GetBool("fluentd.enabled") {
-		logrus.Info("Trying to init fluentd")
-		fluentd.InitFluentd(GlobalLabels)
-	} else if !viper.GetBool("fluentd.enabled") {
-		fluentd.DeleteFluentd(GlobalLabels)
 	}
 }

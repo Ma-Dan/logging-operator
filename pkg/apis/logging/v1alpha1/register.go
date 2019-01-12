@@ -10,7 +10,7 @@ import (
 
 const (
 	version   = "v1alpha1"
-	groupName = "logging.banzaicloud.com"
+	groupName = "logging.kubesphere.io"
 )
 
 var (

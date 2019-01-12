@@ -2,9 +2,9 @@ package stub
 
 import (
 	"context"
-	"github.com/banzaicloud/logging-operator/cmd/logging-operator/fluentd"
-	"github.com/banzaicloud/logging-operator/pkg/apis/logging/v1alpha1"
-	"github.com/banzaicloud/logging-operator/pkg/plugins"
+	"kubesphere.io/logging-operator/cmd/logging-operator/fluentbit"
+	"kubesphere.io/logging-operator/pkg/apis/logging/v1alpha1"
+	"kubesphere.io/logging-operator/pkg/plugins"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -34,9 +34,9 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) (err error) {
 		}
 		logrus.Infof("New CRD arrived %#v", o)
 		logrus.Info("Generating configuration.")
-		name, config := generateFluentdConfig(o, h.NameSpace)
+		name, config := generateFluentbitConfig(o, h.NameSpace)
 		if config != "" && name != "" {
-			fluentd.CreateOrUpdateAppConfig(name, config)
+			fluentbit.CreateOrUpdateAppConfig(name, config)
 		}
 	}
 	return
@@ -49,7 +49,7 @@ func deleteFromConfigMap(name string) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fluentd-app-config",
+			Name:      "fluent-bit-app-config",
 			Namespace: "default",
 		},
 	}
@@ -68,7 +68,7 @@ func deleteFromConfigMap(name string) {
 }
 
 //
-func generateFluentdConfig(crd *v1alpha1.LoggingOperator, namespace string) (string, string) {
+func generateFluentbitConfig(crd *v1alpha1.LoggingOperator, namespace string) (string, string) {
 	var finalConfig string
 	// Generate filters
 	for _, filter := range crd.Spec.Filter {

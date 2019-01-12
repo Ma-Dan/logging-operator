@@ -8,7 +8,7 @@ import (
 )
 
 var rawData = []byte(`
-apiVersion: "logging.banzaicloud.com/v1alpha1"
+apiVersion: "logging.kubesphere.io/v1alpha1"
 kind: "LoggingOperator"
 metadata:
   name: "nginx-logging"

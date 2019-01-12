@@ -1,7 +1,7 @@
 FROM golang:1.10-alpine as golang
 
-ADD . /go/src/github.com/banzaicloud/logging-operator
-WORKDIR /go/src/github.com/banzaicloud/logging-operator
+ADD . /go/src/kubesphere.io/logging-operator
+WORKDIR /go/src/kubesphere.io/logging-operator
 
 RUN apk add --update --no-cache ca-certificates curl git make
 RUN go get -u github.com/golang/dep/cmd/dep

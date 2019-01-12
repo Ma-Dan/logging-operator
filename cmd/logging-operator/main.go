@@ -4,12 +4,11 @@ import (
 	"context"
 	"runtime"
 
-	"github.com/banzaicloud/logging-operator/pkg/stub"
+	"kubesphere.io/logging-operator/pkg/stub"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 
-	"github.com/banzaicloud/logging-operator/cmd/logging-operator/fluentbit"
-	"github.com/banzaicloud/logging-operator/cmd/logging-operator/fluentd"
+	"kubesphere.io/logging-operator/cmd/logging-operator/fluentbit"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
@@ -36,7 +35,7 @@ func main() {
 
 	const (
 		operatorNamespace   = "WATCH_NAMESPACE"
-		operatorResource    = "logging.banzaicloud.com/v1alpha1"
+		operatorResource    = "logging.kubesphere.io/v1alpha1"
 		kind                = "LoggingOperator"
 		kubernetesPodName   = "KUBERNETES_POD_NAME"
 		kubernetesNamespace = "KUBERNETES_NAMESPACE"
@@ -55,7 +54,6 @@ func main() {
 	deploymentLabels := obj.GetLabels()
 	GlobalLabels["chart"] = deploymentLabels["chart"]
 	GlobalLabels["release"] = deploymentLabels["release"]
-	fluentd.OwnerDeployment = obj
 	fluentbit.OwnerDeployment = obj
 	ns := os.Getenv(operatorNamespace)
 	printVersion(ns)

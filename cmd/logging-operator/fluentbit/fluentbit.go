@@ -2,22 +2,27 @@ package fluentbit
 
 import (
 	"bytes"
-	"github.com/banzaicloud/logging-operator/cmd/logging-operator/sdkdecorator"
+	"kubesphere.io/logging-operator/cmd/logging-operator/sdkdecorator"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	extensionv1 "k8s.io/api/extensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sync"
 	"text/template"
 )
 
 // OwnerDeployment of the daemonset
 var OwnerDeployment metav1.Object
 var config *fluentBitDeploymentConfig
+
+// ConfigLock used for AppConfig
+var ConfigLock sync.Mutex
 
 func initConfig(labels map[string]string) *fluentBitDeploymentConfig {
 	if config == nil {
@@ -57,6 +62,7 @@ func InitFluentBit(labels map[string]string) {
 		err = controllerutil.SetControllerReference(OwnerDeployment, cfgMap, scheme.Scheme)
 		logrus.Error(err)
 		sdkdecorator.CallSdkFunctionWithLogging(sdk.Create)(cfgMap)
+		CreateOrUpdateAppConfig("", "")
 		ds := newFluentBitDaemonSet(cfg)
 		err = controllerutil.SetControllerReference(OwnerDeployment, ds, scheme.Scheme)
 		logrus.Error(err)
@@ -80,6 +86,7 @@ func DeleteFluentBit(labels map[string]string) {
 			logrus.Error(err)
 		}
 		sdkdecorator.CallSdkFunctionWithLogging(sdk.Delete)(cfgMap)
+		DeleteAppConfig()
 		foregroundDeletion := metav1.DeletePropagationForeground
 		sdkdecorator.CallSdkFunctionWithLogging(sdk.Delete)(newFluentBitDaemonSet(cfg),
 			sdk.WithDeleteOptions(&metav1.DeleteOptions{
@@ -142,7 +149,6 @@ func newClusterRole(cr *fluentBitDeploymentConfig) *rbacv1.ClusterRole {
 			},
 		},
 	}
-
 }
 
 func newClusterRoleBinding(cr *fluentBitDeploymentConfig) *rbacv1.ClusterRoleBinding {
@@ -183,6 +189,64 @@ func generateConfig(input fluentBitConfig) (*string, error) {
 	}
 	outputString := output.String()
 	return &outputString, nil
+}
+
+// DeleteAppConfig thread safe config management
+func DeleteAppConfig() {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fluent-bit-app-config",
+			Namespace: config.Namespace,
+			Labels:    config.Labels,
+		},
+	}
+	ConfigLock.Lock()
+	defer ConfigLock.Unlock()
+	sdkdecorator.CallSdkFunctionWithLogging(sdk.Delete)(configMap)
+}
+
+// CreateOrUpdateAppConfig idempotent thread safe config management
+func CreateOrUpdateAppConfig(name string, appConfig string) {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fluent-bit-app-config",
+			Namespace: config.Namespace,
+			Labels:    config.Labels,
+		},
+	}
+	// Lock for shared fluent-bit config resource
+	ConfigLock.Lock()
+	defer ConfigLock.Unlock()
+	err := sdk.Get(configMap)
+	if err != nil && !apierrors.IsNotFound(err) {
+		// Something unexpected happened
+		logrus.Error(err)
+		return
+	}
+	// Do the changes
+	if configMap.Data == nil {
+		configMap.Data = map[string]string{}
+	}
+	if name != "" && appConfig != "" {
+		configMap.Data[name+".conf"] = appConfig
+	}
+	// The resource not Found so we create it
+	if err != nil {
+		err = controllerutil.SetControllerReference(OwnerDeployment, configMap, scheme.Scheme)
+		logrus.Error(err)
+		sdkdecorator.CallSdkFunctionWithLogging(sdk.Create)(configMap)
+		return
+	}
+	// No error we go for update
+	sdkdecorator.CallSdkFunctionWithLogging(sdk.Update)(configMap)
 }
 
 func newFluentBitConfig(cr *fluentBitDeploymentConfig) (*corev1.ConfigMap, error) {
@@ -241,6 +305,24 @@ func checkIfDeamonSetExist(cr *fluentBitDeploymentConfig) bool {
 	logrus.Info("FluentBit DaemonSet already exists!")
 	return true
 }
+
+func newConfigMapReloader() *corev1.Container {
+	return &corev1.Container{
+		Name:  "config-reloader",
+		Image: "dockerhub.qingcloud.com/kslogging/configmap-reload:latest",
+		Args: []string{
+			"-volume-dir=/fluent-bit/app-config/",
+			"-webhook-url=http://127.0.0.1:24444/api/config.reload",
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "app-config",
+				MountPath: "/fluent-bit/app-config/",
+			},
+		},
+	}
+}
+
 func generateVolumeMounts() (v []corev1.VolumeMount) {
 	v = []corev1.VolumeMount{
 		{
@@ -252,6 +334,10 @@ func generateVolumeMounts() (v []corev1.VolumeMount) {
 			Name:      "config",
 			MountPath: "/fluent-bit/etc/fluent-bit.conf",
 			SubPath:   "fluent-bit.conf",
+		},
+		{
+			Name:      "app-config",
+			MountPath: "/fluent-bit/app-config/",
 		},
 		{
 			Name:      "positions",
@@ -302,6 +388,16 @@ func generateVolume() (v []corev1.Volume) {
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: "fluent-bit-config",
+					},
+				},
+			},
+		},
+		{
+			Name: "app-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "fluent-bit-app-config",
 					},
 				},
 			},
@@ -365,7 +461,7 @@ func newFluentBitDaemonSet(cr *fluentBitDeploymentConfig) *extensionv1.DaemonSet
 						{
 							// TODO move to configuration
 							Name:  "fluent-bit",
-							Image: "fluent/fluent-bit:latest",
+							Image: "dockerhub.qingcloud.com/fluent/fluent-bit:0.14.7",
 							// TODO get from config translate to const
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
@@ -382,6 +478,7 @@ func newFluentBitDaemonSet(cr *fluentBitDeploymentConfig) *extensionv1.DaemonSet
 							},
 							VolumeMounts: generateVolumeMounts(),
 						},
+						*newConfigMapReloader(),
 					},
 				},
 			},

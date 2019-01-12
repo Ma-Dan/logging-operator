@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/Masterminds/sprig"
-	"github.com/banzaicloud/logging-operator/pkg/plugins"
+	"kubesphere.io/logging-operator/pkg/plugins"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +46,7 @@ type Input struct {
 	Label map[string]string `json:"label"`
 }
 
-// Plugin struct for fluentd plugins
+// Plugin struct for fluent-bit plugins
 type Plugin struct {
 	Type       string      `json:"type"`
 	Name       string      `json:"name"`
