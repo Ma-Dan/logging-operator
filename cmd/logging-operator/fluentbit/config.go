@@ -30,10 +30,16 @@ var fluentBitConfigTemplate = `
     Merge_Log           On
 
 [OUTPUT]
-    Name          forward
-    Match         *
-    Host          fluentd.{{ .Namespace }}.svc
-    Port          24240
+    Name  es
+    Match kubernetes.*
+    Host  elasticsearch-logging-data.{{ .Namespace }}.svc
+    Port  9200
+    Logstash_Format On
+    Replace_Dots on
+    Retry_Limit False
+    Type  flb_type
+    Time_Key @timestamp
+    Logstash_Prefix logstash
     {{ if .TLS.Enabled }}
     tls           On
     tls.verify    Off
@@ -42,5 +48,4 @@ var fluentBitConfigTemplate = `
     tls.key_file  /fluent-bit/tls/clientKey
     Shared_Key    {{ .TLS.SharedKey }}
     {{- end }}
-    Retry_Limit   False
 `
