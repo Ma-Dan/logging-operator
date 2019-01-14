@@ -416,7 +416,7 @@ func newFluentBitDaemonSet(cr *fluentBitDeploymentConfig) *extensionv1.DaemonSet
 							Name:  "fluent-bit",
 							Image: "dockerhub.qingcloud.com/kslogging/fluent-bit:0.14.9",
 							// TODO get from config translate to const
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							ImagePullPolicy: corev1.PullAlways,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "monitor",

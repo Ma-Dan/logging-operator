@@ -1,7 +1,7 @@
 apiVersion: "logging.kubesphere.io/v1alpha1"
 kind: "LoggingOperator"
 metadata:
-  name: "kubernetes-logging"
+  name: "fluent-bit"
 spec:
   service:
     - type: fluentbit_service
