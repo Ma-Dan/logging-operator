@@ -42,11 +42,8 @@ func GetTemplate(name string) (string, error) {
 
 // Register plugins
 func init() {
-	RegisterPlugin(S3Output, S3Template, S3DefaultValues)
-	RegisterPlugin(GCSOutput, GCSTemplate, GCSDefaultValues)
-	RegisterPlugin(AzureOutput, AzureTemplate, AzureDefaultValues)
-	RegisterPlugin(AlibabaOutput, AlibabaTemplate, AlibabaDefaultValues)
-	RegisterPlugin(ElasticSearchOutput, ElasticSearchTemplate, ElasticSearchDefaultValues)
-	//RegisterPlugin(ParserFilter, ParserFilterTemplate, ParserFilterDefaultValues)
-	RegisterPlugin(RecordTransformerFilter, RecordTransformerFilterTemplate, RecordTransformerFilterDefaultValues)
+	RegisterPlugin(FluentBitService, FluentBitServiceTemplate, FluentBitServiceDefaultValues)
+	RegisterPlugin(FluentBitInput, FluentBitInputTemplate, FluentBitInputDefaultValues)
+	RegisterPlugin(FluentBitFilter, FluentBitFilterTemplate, FluentBitFilterDefaultValues)
+	RegisterPlugin(FluentBitOutput, FluentBitOutputTemplate, FluentBitOutputDefaultValues)
 }

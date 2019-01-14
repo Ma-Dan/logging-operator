@@ -70,6 +70,38 @@ func deleteFromConfigMap(name string) {
 //
 func generateFluentbitConfig(crd *v1alpha1.LoggingOperator, namespace string) (string, string) {
 	var finalConfig string
+	// Generate service
+	for _, service := range crd.Spec.Service {
+		logrus.Info("Applying service")
+		values, err := plugins.GetDefaultValues(service.Type)
+		if err != nil {
+			logrus.Infof("Error in rendering template: %s", err)
+			return "", ""
+		}
+		config, err := v1alpha1.RenderPlugin(service, values, namespace)
+		if err != nil {
+			logrus.Infof("Error in rendering template: %s", err)
+			return "", ""
+		}
+		finalConfig += config
+	}
+
+	// Generate input
+	for _, input := range crd.Spec.Input {
+		logrus.Info("Applying input")
+		values, err := plugins.GetDefaultValues(input.Type)
+		if err != nil {
+			logrus.Infof("Error in rendering template: %s", err)
+			return "", ""
+		}
+		config, err := v1alpha1.RenderPlugin(input, values, namespace)
+		if err != nil {
+			logrus.Infof("Error in rendering template: %s", err)
+			return "", ""
+		}
+		finalConfig += config
+	}
+
 	// Generate filters
 	for _, filter := range crd.Spec.Filter {
 		logrus.Info("Applying filter")
@@ -78,7 +110,6 @@ func generateFluentbitConfig(crd *v1alpha1.LoggingOperator, namespace string) (s
 			logrus.Infof("Error in rendering template: %s", err)
 			return "", ""
 		}
-		values["pattern"] = crd.Spec.Input.Label["app"]
 		config, err := v1alpha1.RenderPlugin(filter, values, namespace)
 		if err != nil {
 			logrus.Infof("Error in rendering template: %s", err)
@@ -89,12 +120,12 @@ func generateFluentbitConfig(crd *v1alpha1.LoggingOperator, namespace string) (s
 
 	// Generate output
 	for _, output := range crd.Spec.Output {
+		logrus.Info("Applying output")
 		values, err := plugins.GetDefaultValues(output.Type)
 		if err != nil {
 			logrus.Infof("Error in rendering template: %s", err)
 			return "", ""
 		}
-		values["pattern"] = crd.Spec.Input.Label["app"]
 		config, err := v1alpha1.RenderPlugin(output, values, namespace)
 		if err != nil {
 			logrus.Infof("Error in rendering template: %s", err)
@@ -102,6 +133,6 @@ func generateFluentbitConfig(crd *v1alpha1.LoggingOperator, namespace string) (s
 		}
 		finalConfig += config
 	}
-	return crd.Name, finalConfig
 
+	return crd.Name, finalConfig
 }

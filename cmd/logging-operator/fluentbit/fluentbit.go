@@ -104,12 +104,6 @@ type fluentBitDeploymentConfig struct {
 
 type fluentBitConfig struct {
 	Namespace string
-	TLS       struct {
-		Enabled   bool
-		SharedKey string
-	}
-	Monitor map[string]string
-	Output  map[string]string
 }
 
 func newServiceAccount(cr *fluentBitDeploymentConfig) *corev1.ServiceAccount {
@@ -252,16 +246,6 @@ func CreateOrUpdateAppConfig(name string, appConfig string) {
 func newFluentBitConfig(cr *fluentBitDeploymentConfig) (*corev1.ConfigMap, error) {
 	input := fluentBitConfig{
 		Namespace: cr.Namespace,
-		TLS: struct {
-			Enabled   bool
-			SharedKey string
-		}{
-			Enabled:   viper.GetBool("tls.enabled"),
-			SharedKey: viper.GetString("tls.sharedKey"),
-		},
-		Monitor: map[string]string{
-			"Port": "2020",
-		},
 	}
 	config, err := generateConfig(input)
 	if err != nil {
@@ -349,26 +333,6 @@ func generateVolumeMounts() (v []corev1.VolumeMount) {
 			MountPath: "/var/log/",
 		},
 	}
-	if viper.GetBool("tls.enabled") {
-		tlsRelatedVolume := []corev1.VolumeMount{
-			{
-				Name:      "fluent-tls",
-				MountPath: "/fluent-bit/tls/caCert",
-				SubPath:   "caCert",
-			},
-			{
-				Name:      "fluent-tls",
-				MountPath: "/fluent-bit/tls/clientCert",
-				SubPath:   "clientCert",
-			},
-			{
-				Name:      "fluent-tls",
-				MountPath: "/fluent-bit/tls/clientKey",
-				SubPath:   "clientKey",
-			},
-		}
-		v = append(v, tlsRelatedVolume...)
-	}
 	return
 }
 
@@ -416,17 +380,6 @@ func generateVolume() (v []corev1.Volume) {
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
-	}
-	if viper.GetBool("tls.enabled") {
-		tlsRelatedVolume := corev1.Volume{
-			Name: "fluent-tls",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: viper.GetString("tls.secretName"),
-				},
-			},
-		}
-		v = append(v, tlsRelatedVolume)
 	}
 	return
 }

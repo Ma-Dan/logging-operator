@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/Masterminds/sprig"
-	"kubesphere.io/logging-operator/pkg/plugins"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/logging-operator/pkg/plugins"
 	"text/template"
 )
 
@@ -31,19 +31,15 @@ type LoggingOperator struct {
 
 // LoggingOperatorSpec holds the spec for the operator
 type LoggingOperatorSpec struct {
-	Input  Input    `json:"input"`
-	Filter []Plugin `json:"filter"`
-	Output []Plugin `json:"output"`
+	Service []Plugin `json:"service"`
+	Input   []Plugin `json:"input"`
+	Filter  []Plugin `json:"filter"`
+	Output  []Plugin `json:"output"`
 }
 
 // LoggingOperatorStatus holds the status info for the operator
 type LoggingOperatorStatus struct {
 	// Fill me
-}
-
-// Input this determines the log origin
-type Input struct {
-	Label map[string]string `json:"label"`
 }
 
 // Plugin struct for fluent-bit plugins
